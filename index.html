@@ -29,8 +29,12 @@
         .page.active { display: block; }
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; overflow-y: auto; padding: 1rem 0; }
         .modal-content { background: white; padding: 2rem; border-radius: 1rem; width: 90%; max-width: 500px; max-height: 95vh; overflow-y: auto;}
-        #camera-modal { z-index: 1050; } /* Ensure camera is on top */
+        #camera-modal { z-index: 1050; }
         #id-scan-loader-modal { z-index: 1100; }
+        .camera-overlay-container { position: relative; width: 100%; }
+        .camera-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .camera-overlay::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); }
+        .id-card-cutout { position: relative; width: 90%; height: 55%; border: 2px dashed #fff; border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6); }
         .loader { border: 4px solid #f3f3f3; border-radius: 50%; border-top: 4px solid #4f46e5; width: 40px; height: 40px; -webkit-animation: spin 2s linear infinite; animation: spin 2s linear infinite; }
         @-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -47,7 +51,7 @@
 
     <!-- Admin Panel -->
     <div id="admin-panel" class="page max-w-7xl mx-auto">
-        <header class="mb-8 flex justify-between items-center"><h1 class="text-4xl font-bold text-gray-800">Admin Panel</h1><button id="admin-logout-btn" class="btn-secondary"><span class="material-icons">logout</span>Logout</button></header>
+        <header class="mb-8 flex items-center gap-4"><img src="https://firebasestorage.googleapis.com/v0/b/thinethhelthcare.firebasestorage.app/o/stock-images%2Flogo%20black%20BG.png?alt=media" alt="Logo" class="w-12 h-12 rounded-full object-contain"><h1 class="text-4xl font-bold text-gray-800">Admin Panel</h1><div class="flex-grow"></div><button id="admin-logout-btn" class="btn-secondary"><span class="material-icons">logout</span>Logout</button></header>
         <div class="flex flex-wrap justify-center mb-8 bg-gray-200 rounded-lg p-2 gap-2"><button class="tab-button flex-1 py-2 px-4 rounded-md font-semibold active" onclick="showTab('stock')"><span class="material-icons align-middle mr-2">inventory_2</span>Stock</button><button class="tab-button flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('sales')"><span class="material-icons align-middle mr-2">point_of_sale</span>Sales</button><button class="tab-button flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('reports')"><span class="material-icons align-middle mr-2">assessment</span>Reports</button><button class="tab-button flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('registrations')"><span class="material-icons align-middle mr-2">how_to_reg</span>Registrations</button><button class="tab-button flex-1 py-2 px-4 rounded-md font-semibold" onclick="showTab('settings')"><span class="material-icons align-middle mr-2">settings</span>Settings</button></div>
         <div id="stock" class="tab-content" style="display: block;"><div class="grid grid-cols-1 md:grid-cols-3 gap-8"><div class="md:col-span-1"><div class="card p-6"><h2 class="text-2xl font-bold mb-4 text-gray-700">Add New Item</h2><form id="add-stock-form" class="space-y-4"><div><label class="block text-sm font-medium text-gray-600 mb-1">Item ID</label><div class="flex items-center space-x-2"><input type="text" id="itemId" class="form-input" placeholder="භාණ්ඩ අංකය (හිස්ව තබන්න)"><button type="button" id="open-stock-scanner" class="p-2 bg-gray-200 rounded-md hover:bg-gray-300"><span class="material-icons">qr_code_scanner</span></button></div></div><div><label for="itemCategory" class="block text-sm font-medium text-gray-600 mb-1">වර්ගය</label><select id="itemCategory" class="form-input"></select></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Price (LKR)</label><input type="number" id="itemPrice" class="form-input" placeholder="විකුණුම් මිල" required></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Cost (LKR)</label><input type="number" id="itemCost" class="form-input" placeholder="මිලදී ගත් මිල" required></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Supplier</label><input type="text" id="itemSupplier" class="form-input" placeholder="සැපයුම්කරු" required></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Picture</label><div class="flex items-center gap-2"><input type="file" id="itemPicture" class="form-input file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" accept="image/*"><button type="button" id="open-camera-btn" class="p-2 bg-gray-200 rounded-md hover:bg-gray-300"><span class="material-icons">photo_camera</span></button></div><img id="image-preview" class="hidden mt-2 rounded-md max-h-32"/></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Points (Optional)</label><input type="number" id="itemPoints" class="form-input" placeholder="උදා: 10"></div><button type="submit" class="btn-primary w-full"><span class="material-icons">add_shopping_cart</span>Add Item</button></form></div></div><div class="md:col-span-2"><div class="card p-6"><h2 class="text-2xl font-bold mb-4 text-gray-700">Current Stock</h2><div id="stock-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"><p class="text-gray-500 col-span-full">Loading stock...</p></div></div></div></div></div>
         <div id="sales" class="tab-content"><div class="grid grid-cols-1 md:grid-cols-3 gap-8"><div class="md-col-span-1"><div class="card p-6"><h2 class="text-2xl font-bold mb-4 text-gray-700">New Sale</h2><div id="sale-item-preview" class="hidden card p-4 my-4 border border-indigo-200"></div><form id="add-sale-form" class="space-y-4"><div><label class="block text-sm font-medium text-gray-600 mb-1">Item ID</label><div class="flex items-center space-x-2"><input type="text" id="saleItemId" class="form-input" placeholder="භාණ්ඩ අංකය" required><button type="button" id="open-sale-scanner" class="p-2 bg-gray-200 rounded-md hover:bg-gray-300"><span class="material-icons">qr_code_scanner</span></button></div></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Customer Name</label><input type="text" id="customerName" class="form-input" placeholder="ගනුදෙනුකරුගේ නම" required></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Contact Number</label><input type="text" id="customerContact" class="form-input" placeholder="දුරකථන අංකය" required></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Discount (LKR)</label><input type="number" id="saleDiscount" class="form-input" placeholder="වට්ටම (LKR)"></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Payment Type</label><div class="flex space-x-4"><label class="flex items-center"><input type="radio" name="paymentType" value="full" class="mr-2" checked> Full Cash</label><label class="flex items-center"><input type="radio" name="paymentType" value="installment" class="mr-2"> Installment</label></div></div><div id="downpayment-section" class="hidden"><label class="block text-sm font-medium text-gray-600 mb-1">Downpayment (LKR)</label><input type="number" id="downpaymentAmount" class="form-input" placeholder="මූලික ගෙවීම"></div><button type="submit" class="btn-primary w-full"><span class="material-icons">shopping_cart</span>Create Sale</button></form></div></div><div class="md:col-span-2"><div class="card p-6"><h2 class="text-2xl font-bold mb-4 text-gray-700">Ongoing Sales</h2><div class="mb-4"><input type="text" id="sales-search" class="form-input" placeholder="නම, දුරකථන අංකය හෝ ID මගින් සොයන්න..."></div><div id="sales-list" class="space-y-4"><p class="text-gray-500">Loading sales...</p></div></div></div></div></div>
@@ -89,7 +93,7 @@
     <div id="edit-sale-modal" class="modal"><div class="modal-content"><h3 class="text-xl font-bold mb-4">Edit Customer Info</h3><form id="edit-sale-form" class="space-y-4"><input type="hidden" id="edit-sale-key"><div><label class="block text-sm font-medium text-gray-600 mb-1">Customer Name</label><input type="text" id="edit-customerName" class="form-input" required></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Contact Number</label><input type="text" id="edit-customerContact" class="form-input" required></div><div class="flex justify-end space-x-3 mt-4"><button type="button" class="btn-secondary close-modal-btn">Cancel</button><button type="submit" class="btn-primary">Save Changes</button></div></form></div></div>
     <div id="edit-stock-modal" class="modal"><div class="modal-content"><h3 class="text-xl font-bold mb-4">Edit Stock Item</h3><form id="edit-stock-form" class="space-y-4"><input type="hidden" id="edit-stock-id"><input type="hidden" id="edit-stock-image-url"><div><label class="block text-sm font-medium text-gray-600 mb-1">Item ID</label><input type="text" id="edit-itemId-display" class="form-input bg-gray-100" readonly></div><div><label for="edit-itemCategory" class="block text-sm font-medium text-gray-600 mb-1">Category</label><select id="edit-itemCategory" class="form-input"></select></div><div><label>Price (LKR)</label><input type="number" id="edit-itemPrice" class="form-input" required></div><div><label>Cost (LKR)</label><input type="number" id="edit-itemCost" class="form-input" required></div><div><label>Supplier</label><input type="text" id="edit-itemSupplier" class="form-input" required></div><div><label>Points</label><input type="number" id="edit-itemPoints" class="form-input"></div><div class="flex justify-end space-x-3 mt-4"><button type="button" class="btn-secondary close-modal-btn">Cancel</button><button type="submit" class="btn-primary">Save Changes</button></div></form></div></div>
     <div id="delete-confirm-modal" class="modal"><div class="modal-content max-w-sm text-center"><span class="material-icons text-5xl text-red-500 mb-4">warning</span><h3 class="text-xl font-bold mb-2">Are you sure?</h3><p class="text-gray-600 mb-6">Do you really want to delete this item? This process cannot be undone.</p><div class="flex justify-center space-x-3"><button type="button" class="btn-secondary close-modal-btn">Cancel</button><button type="button" id="confirm-delete-btn" class="btn-primary bg-red-600 hover:bg-red-700">Delete</button></div></div></div>
-    <div id="camera-modal" class="modal"><div class="modal-content"><h3 class="text-xl font-bold text-center mb-4">Take a Photo</h3><video id="camera-feed" class="w-full rounded-md bg-gray-900" playsinline></video><canvas id="photo-canvas" class="hidden"></canvas><div class="flex justify-center gap-4 mt-4"><button id="take-photo-btn" class="btn-primary"><span class="material-icons">photo_camera</span>Take Photo</button><button type="button" class="btn-secondary close-modal-btn">Cancel</button></div></div></div>
+    <div id="camera-modal" class="modal"><div class="modal-content"><h3 class="text-xl font-bold text-center mb-4">Take a Photo</h3><div class="camera-overlay-container"><video id="camera-feed" class="w-full rounded-md bg-gray-900" playsinline></video><div id="id-camera-overlay" class="camera-overlay hidden"><div class="id-card-cutout"></div></div></div><canvas id="photo-canvas" class="hidden"></canvas><div class="flex justify-center gap-4 mt-4"><button id="take-photo-btn" class="btn-primary"><span class="material-icons">photo_camera</span>Take Photo</button><button type="button" class="btn-secondary close-modal-btn">Cancel</button></div></div></div>
     <div id="sms-templates-modal" class="modal"><div class="modal-content"><h3 class="text-xl font-bold mb-4">Edit SMS Templates</h3><form id="sms-templates-form" class="space-y-4"><div><label class="block text-sm font-medium text-gray-600 mb-1">Sale Confirmation</label><textarea id="template-sale" class="form-input h-24" placeholder="Use placeholders like {{itemId}}, {{price}}, {{pointsEarned}}, {{totalPoints}}"></textarea></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Customer Login</label><textarea id="template-login" class="form-input h-24" placeholder="Use {{customerName}}"></textarea></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Installment Update</label><textarea id="template-installment" class="form-input h-24" placeholder="Use {{amount}}, {{balance}}"></textarea></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Payment Reminder</label><textarea id="template-reminder" class="form-input h-24" placeholder="Use {{customerName}}, {{balance}}"></textarea></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Failed Login Attempt</label><textarea id="template-loginFailed" class="form-input h-24"></textarea></div><div class="flex justify-between items-center mt-4"><button type="button" id="reset-sms-btn" class="btn-secondary !bg-yellow-200 !text-yellow-800">Reset</button><div class="space-x-3"><button type="button" class="btn-secondary close-modal-btn">Cancel</button><button type="submit" class="btn-primary">Save Templates</button></div></div></form></div></div>
     <div id="category-manager-modal" class="modal"><div class="modal-content"><h3 class="text-xl font-bold mb-4">Manage Categories</h3><form id="add-category-form" class="flex gap-2 mb-4"><input type="text" id="new-category-name" class="form-input" placeholder="New category name" required><button type="submit" class="btn-primary">Add</button></form><div id="category-list" class="space-y-2"></div><div class="flex justify-end mt-4"><button type="button" class="btn-secondary close-modal-btn">Close</button></div></div></div>
     <div id="register-modal" class="modal"><div class="modal-content"><h3 class="text-xl font-bold mb-4">New Customer Registration</h3><form id="register-form" class="space-y-4"><div><label class="block text-sm font-medium text-gray-600 mb-1">Full Name</label><input type="text" id="register-name" class="form-input" placeholder="සම්පූර්ණ නම" required></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Contact Number</label><input type="tel" id="register-contact" class="form-input" placeholder="දුරකථන අංකය" required></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Address</label><textarea id="register-address" class="form-input" placeholder="ලිපිනය"></textarea></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Workplace (Optional)</label><input type="text" id="register-workplace" class="form-input" placeholder="සේවා ස්ථානය"></div><div><label class="block text-sm font-medium text-gray-600 mb-1">Work Address (Optional)</label><textarea id="register-work-address" class="form-input" placeholder="සේවා ලිපිනය"></textarea></div><div><label class="block text-sm font-medium text-gray-600 mb-1">National ID (Front)</label><div class="flex items-center gap-2"><input type="file" id="register-id-front" class="form-input" accept="image/*" required><button type="button" data-target-input="register-id-front" data-target-preview="id-front-preview" class="open-id-camera-btn p-2 bg-gray-200 rounded-md hover:bg-gray-300"><span class="material-icons">photo_camera</span></button></div><img id="id-front-preview" class="hidden mt-2 rounded-md max-h-32"/></div><div><label class="block text-sm font-medium text-gray-600 mb-1">National ID (Back)</label><div class="flex items-center gap-2"><input type="file" id="register-id-back" class="form-input" accept="image/*" required><button type="button" data-target-input="register-id-back" data-target-preview="id-back-preview" class="open-id-camera-btn p-2 bg-gray-200 rounded-md hover:bg-gray-300"><span class="material-icons">photo_camera</span></button></div><img id="id-back-preview" class="hidden mt-2 rounded-md max-h-32"/></div><div class="flex items-start mt-4"><div class="flex items-center h-5"><input id="accept-terms" type="checkbox" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded"></div><div class="ml-3 text-sm"><label for="accept-terms" class="font-medium text-gray-700">I accept the <a href="#" id="show-terms-link" class="text-indigo-600 hover:underline">Terms and Conditions</a></label></div></div><div id="register-loader" class="hidden justify-center items-center gap-2 mt-4"><div class="loader"></div><span>Uploading images...</span></div><div class="flex justify-end space-x-3 mt-4"><button type="button" class="btn-secondary close-modal-btn">Cancel</button><button type="submit" id="register-submit-btn" class="btn-primary" disabled>Submit Request</button></div></form></div></div>
@@ -330,14 +334,14 @@
         async function deleteStockItem(itemId, imageUrl) { try { await database.ref('stock/' + itemId).remove(); if (imageUrl) { await storage.refFromURL(imageUrl).delete().catch(e => console.warn("Could not delete image, maybe already deleted:", e)); } showToast('Item deleted successfully!'); } catch (err) { showToast('Failed to delete item.', true); console.error(err); } finally { document.getElementById('delete-confirm-modal').style.display = 'none'; } }
         
         document.getElementById('open-camera-btn').addEventListener('click', async () => {
-            currentIdCameraTarget = null; // Unset ID camera target
+            currentIdCameraTarget = null;
             openCamera(blob => {
                 capturedImageBlob = blob;
                 const preview = document.getElementById('image-preview');
                 preview.src = URL.createObjectURL(blob);
                 preview.classList.remove('hidden');
                 document.getElementById('itemPicture').value = '';
-            });
+            }, false); // isIdCard = false
         });
 
         document.querySelectorAll('.open-id-camera-btn').forEach(btn => {
@@ -357,14 +361,16 @@
                     if (currentIdCameraTarget && currentIdCameraTarget.input) {
                         document.getElementById(currentIdCameraTarget.input).files = dataTransfer.files;
                     }
-                });
+                }, true); // isIdCard = true
             });
         });
 
-        async function openCamera(callback) {
+        async function openCamera(callback, isIdCard) {
             showToast('Opening camera...');
             const modal = document.getElementById('camera-modal');
             const video = document.getElementById('camera-feed');
+            const overlay = document.getElementById('id-camera-overlay');
+            overlay.classList.toggle('hidden', !isIdCard);
             modal.style.display = 'flex';
             try {
                 cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -436,7 +442,7 @@
         async function proceedWithSale() {
             if (!pendingSaleData) return;
             const { form, itemId, name, contact, type, downpayment, discount } = pendingSaleData;
-            pendingSaleData = null; // Clear pending data
+            pendingSaleData = null;
              try {
                 const stockRef = database.ref('stock/' + itemId);
                 const stockSnap = await stockRef.once('value');
@@ -850,19 +856,13 @@
                             resolve(result.getText());
                         } catch (err) {
                             console.warn("PDF417 decoding failed:", err);
-                            resolve(null); // Resolve with null if decoding fails
+                            resolve(null);
                         }
                     };
-                    img.onerror = function() {
-                        console.error("Image loading failed for PDF417 scan.");
-                        resolve(null);
-                    };
+                    img.onerror = () => resolve(null);
                     img.src = e.target.result;
                 };
-                reader.onerror = function() {
-                    console.error("File reading failed for PDF417 scan.");
-                    resolve(null);
-                };
+                reader.onerror = () => resolve(null);
                 reader.readAsDataURL(file);
             });
         };
@@ -872,9 +872,7 @@
             const form = e.target;
             const name = form['register-name'].value, contact = form['register-contact'].value, address = form['register-address'].value, workplace = form['register-workplace'].value, workAddress = form['register-work-address'].value, idFrontFile = form['register-id-front'].files[0], idBackFile = form['register-id-back'].files[0];
 
-            if(!name || !contact || !idFrontFile || !idBackFile) {
-                return showToast('Please fill all required fields and upload both ID images.', true);
-            }
+            if(!name || !contact || !idFrontFile || !idBackFile) { return showToast('Please fill all required fields and upload both ID images.', true); }
             
             const loader = document.getElementById('register-loader');
             const scanLoader = document.getElementById('id-scan-loader-modal');
@@ -882,18 +880,14 @@
             
             try {
                 await loadSmsTemplates();
-
                 const uploadFile = async (file, path) => (await (await storage.ref(path).put(file)).ref.getDownloadURL());
-
-                const [frontUrl, backUrl] = await Promise.all([
-                    uploadFile(idFrontFile, `id-cards/${contact}-front-${Date.now()}`),
-                    uploadFile(idBackFile, `id-cards/${contact}-back-${Date.now()}`)
-                ]);
+                const [frontUrl, backUrl] = await Promise.all([ uploadFile(idFrontFile, `id-cards/${contact}-front-${Date.now()}`), uploadFile(idBackFile, `id-cards/${contact}-back-${Date.now()}`) ]);
                 
                 loader.style.display = 'none';
                 scanLoader.style.display = 'flex';
 
                 const scannedText = await readPdf417(idBackFile);
+                if(scannedText) { showToast("ID analysis successful!"); } else { showToast("Could not read ID barcode automatically.", true); }
                 
                 const requestData = { name, contact, address, workplace, workAddress, idFrontUrl: frontUrl, idBackUrl: backUrl, status: 'pending', requestDate: new Date().toISOString(), scannedIdData: scannedText || null };
 
@@ -905,7 +899,6 @@
                 form.reset();
                 document.getElementById('id-front-preview').classList.add('hidden');
                 document.getElementById('id-back-preview').classList.add('hidden');
-
             } catch (error) {
                 console.error("Registration failed:", error);
                 showToast('Registration failed. Please try again.', true);
@@ -942,10 +935,7 @@
             database.ref('registrationRequests').orderByChild('status').equalTo('pending').on('value', (snapshot) => {
                 const list = document.getElementById('registration-requests-list');
                 list.innerHTML = '';
-                if (!snapshot.exists()) {
-                    list.innerHTML = '<p class="text-gray-500">No pending registration requests.</p>';
-                    return;
-                }
+                if (!snapshot.exists()) { list.innerHTML = '<p class="text-gray-500">No pending registration requests.</p>'; return; }
                 snapshot.forEach(childSnapshot => {
                     const key = childSnapshot.key;
                     const req = childSnapshot.val();
@@ -982,44 +972,41 @@
         async function fetchAndDisplayRegisteredCustomers() {
             const list = document.getElementById('registered-customers-list');
             try {
-                const [customersSnap, salesSnap] = await Promise.all([
+                const [customersSnap, requestsSnap] = await Promise.all([
                     database.ref('customers').orderByChild('status').equalTo('approved').once('value'),
-                    database.ref('sales').once('value')
+                    database.ref('registrationRequests').once('value')
                 ]);
                 
                 list.innerHTML = '';
-                if (!customersSnap.exists()) {
-                    list.innerHTML = '<p class="text-gray-500">No registered customers found.</p>';
-                    return;
-                }
-
-                const allSales = salesSnap.val() || {};
+                if (!customersSnap.exists()) { list.innerHTML = '<p class="text-gray-500">No registered customers found.</p>'; return; }
+                const requests = requestsSnap.val() || {};
                 const customers = customersSnap.val();
                 
+                list.innerHTML = `<div class="grid grid-cols-4 gap-4 font-bold text-sm border-b pb-2"><p>Name</p><p>Registered Date</p><p>ID Verified</p><p>Actions</p></div>`;
+
                 for(const phone in customers) {
                     const customer = customers[phone];
-                    let outstanding = 0;
-                    let totalPoints = 0;
+                    let requestData = Object.values(requests).find(r => r.contact === phone);
 
-                    Object.values(allSales).forEach(sale => {
-                        if (sale.customerContact === phone) {
-                            totalPoints += sale.points || 0;
-                            if(sale.status === 'ongoing') {
-                                const totalPaid = Object.values(sale.payments || {}).reduce((sum, p) => sum + p.amount, 0);
-                                outstanding += sale.totalPrice - totalPaid;
-                            }
-                        }
-                    });
-
+                    const verifiedIcon = requestData && requestData.scannedIdData 
+                        ? `<span class="material-icons text-green-500" title="Verified">check_circle</span>` 
+                        : `<span class="material-icons text-red-500" title="Not Verified">cancel</span>`;
+                    
+                    const viewDataBtn = requestData && requestData.scannedIdData
+                        ? `<button onclick='showScannedDetails(${JSON.stringify(requestData.scannedIdData)})' class="p-1 bg-gray-200 rounded-full hover:bg-gray-300"><span class="material-icons text-sm">visibility</span></button>`
+                        : `<button class="p-1 bg-gray-100 rounded-full cursor-not-allowed" disabled><span class="material-icons text-sm text-gray-400">visibility_off</span></button>`;
+                    
+                    const regDate = requestData ? new Date(requestData.requestDate).toLocaleDateString() : 'N/A';
+                    
                     list.innerHTML += `
-                        <div class="card p-4">
-                            <h4 class="font-bold text-lg">${customer.name}</h4>
-                            <p class="text-gray-600">${customer.contact}</p>
-                            <p class="text-gray-500 text-sm mt-1">${customer.address || 'N/A'}</p>
-                            <div class="mt-2 pt-2 border-t flex justify-between">
-                                <span class="text-sm font-semibold text-amber-700">Points: ${totalPoints}</span>
-                                <span class="text-sm font-semibold text-red-700">Outstanding: LKR ${outstanding.toFixed(2)}</span>
-                            </div>
+                        <div class="grid grid-cols-4 gap-4 items-center py-2 border-b">
+                           <div>
+                                <p class="font-semibold">${customer.name}</p>
+                                <p class="text-xs text-gray-500">${customer.contact}</p>
+                           </div>
+                           <p class="text-sm text-gray-600">${regDate}</p>
+                           <div class="flex justify-center">${verifiedIcon}</div>
+                           <div class="flex justify-center">${viewDataBtn}</div>
                         </div>`;
                 }
 
